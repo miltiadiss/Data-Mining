@@ -3,55 +3,60 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+
+def create_lags(df, lag):
+    cols_to_shift = [col for col in df.columns if (col != 'timestamp' and col != 'label')]
+    for col in cols_to_shift:
+        for i in range(1, lag + 1):
+            df[f'{col}_lag_{i}'] = df[col].shift(i)
+    df.fillna(0, inplace=True)  # Αντικατάσταση των τιμών NaN με 0
+    return df
+
 
 # Ορίστε τον φάκελο που περιέχει τα αρχεία CSV
 path = r"C:\Users\me\PycharmProjects\pythonProject2\harth"
-output_csv_path = r"C:\Users\me\PycharmProjects\pythonProject2\output_predictions.csv"
+output_csv_path = r"C:\Users\me\PycharmProjects\pythonProject2\output_labels.csv"
 
-# Φορτώνουμε το CSV αρχείο
-df = pd.read_csv(os.path.join(path, "S024.csv"), parse_dates=['timestamp'])
+accuracies = []  # Λίστα για την αποθήκευση των ακριβειών από κάθε αρχείο
+# Δημιουργούμε και εκπαιδεύουμε τον ταξινομητή Random Forest
+rf_classifier = RandomForestClassifier(n_estimators=30, random_state=42)
 
-# Εξασφαλίζουμε ότι οι στήλες που χρησιμοποιούνται ως χαρακτηριστικά είναι αριθμητικές
-numeric_columns = df.select_dtypes(include=['float', 'int']).columns
-non_numeric_columns = df.select_dtypes(exclude=['float', 'int']).columns
+# Διατρέχουμε τα αρχεία στον φάκελο
+for filename in os.listdir(path):
+    if filename.endswith(".csv"):
+        # Φορτώνουμε το CSV αρχείο
+        df = pd.read_csv(os.path.join(path, filename))
 
-# Χρησιμοποιούμε LabelEncoder για τις μη αριθμητικές στήλες
-for col in non_numeric_columns:
-    le = LabelEncoder()
-    df[col] = le.fit_transform(df[col])
+        # Δημιουργούμε τα lags
+        df = create_lags(df, 50)
 
-# Διαχωρίζουμε το σύνολο δεδομένων σε σύνολα εκπαίδευσης και δοκιμής
-X = df.drop('label', axis=1)
-y = df['label']
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Διαχωρίζουμε σε train και test sets
+        train_size = int(0.8 * len(df))
+        train_df = df.iloc[:train_size]
+        test_df = df.iloc[train_size:]
 
-# Δημιουργία και εκπαίδευση του μοντέλου Random Forest
-rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
-rf_classifier.fit(X_train, y_train)
+        X_train = train_df.drop(['timestamp', 'label'], axis=1)
+        y_train = train_df['label']
+        X_test = test_df.drop(['timestamp', 'label'], axis=1)
+        y_test = test_df['label']
 
-# Πρόβλεψη στο σύνολο δοκιμής
-y_pred = rf_classifier.predict(X_test)
+        rf_classifier.fit(X_train, y_train)
 
-# Αξιολόγηση του μοντέλου
-accuracy = accuracy_score(y_test, y_pred)
-precision = precision_score(y_test, y_pred, average='weighted')
-recall = recall_score(y_test, y_pred, average='weighted')
-f1 = f1_score(y_test, y_pred, average='weighted')
+        # Προβλέπουμε τις ετικέτες του test set
+        y_pred = rf_classifier.predict(X_test)
 
-# Δημιουργία DataFrame για τις προβλεπόμενες και πραγματικές τιμές
-comparison_df = pd.DataFrame({
-    'Actual': y_test.values,  # Πραγματικές τιμές
-    'Predicted': y_pred  # Προβλεπόμενες τιμές
-})
+        # Υπολογίζουμε την ακρίβεια και την προσθέτουμε στη λίστα των ακριβειών
+        accuracy = accuracy_score(y_test, y_pred)
+        accuracies.append(accuracy)
 
-# Αποθήκευση του DataFrame σε αρχείο CSV
-comparison_df.to_csv(output_csv_path, index=False)
+        # Εκτυπώνουμε την ακρίβεια για κάθε αρχείο
+        print(f"Ακρίβεια πρόβλεψης δραστηριότητας για συμμετέχοντα {filename}: {accuracy}")
 
-# Εκτύπωση των στατιστικών του μοντέλου
-print("Προβλέψεις και Πραγματικές τιμές αποθηκεύτηκαν στο CSV.")
-print(f"Απόδοση του μοντέλου Random Forest:")
-print("Ακρίβεια:", accuracy)
-print("Προσέγγιση:", precision)
-print("Ανάκληση:", recall)
-print("F1-βαθμολογία:", f1)
+# Υπολογισμός της μέσης ακρίβειας
+mean_accuracy = sum(accuracies) / len(accuracies)
+print(f"Μέση ακρίβεια πρόβλεψης δραστηριότητας: {mean_accuracy}")
+
+
+
+
