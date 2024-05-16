@@ -1,66 +1,77 @@
 import os
 import pandas as pd
-import numpy as np
+from pgmpy.models import BayesianNetwork
+from pgmpy.estimators import MaximumLikelihoodEstimator, HillClimbSearch, BicScore
+from pgmpy.inference import VariableElimination
+from sklearn.preprocessing import KBinsDiscretizer
 from sklearn.metrics import accuracy_score
-import tensorflow as tf
 
 def create_lags(df, lag):
-    # Δημιουργία των lags για τα χαρακτηριστικά
-    cols_to_shift = [col for col in df.columns if (col != 'timestamp' and col != 'label')]
+    cols_to_shift = [col for col in df.columns if col not in ['timestamp', 'label']]
     for col in cols_to_shift:
         for i in range(1, lag + 1):
             df[f'{col}_lag_{i}'] = df[col].shift(i)
-    df.fillna(0, inplace=True)  # Αντικατάσταση των τιμών NaN με 0
+    df.fillna(0, inplace=True)  # Replace NaN values with 0
     return df
 
-# Ορισμός του φακέλου που περιέχει τα αρχεία CSV
-path = r"C:\Users\me\PycharmProjects\pythonProject2\harth"
+def discretize_columns(df, bins):
+    cols_to_discretize = [col for col in df.columns if col not in ['timestamp', 'label']]
+    discretizer = KBinsDiscretizer(n_bins=bins, encode='ordinal', strategy='uniform')
+    df[cols_to_discretize] = discretizer.fit_transform(df[cols_to_discretize])
+    return df
 
-accuracies = []  # Λίστα για την αποθήκευση των ακριβειών από κάθε αρχείο
+# Set the folder containing the CSV files
+path = '/content/harth'
+accuracies = []
 
-# Διάβασμα των αρχείων στο φάκελο
+# Loop through the files in the folder
 for filename in os.listdir(path):
     if filename.endswith(".csv"):
-        # Διάβασμα του CSV αρχείου
+        # Load the CSV file
         df = pd.read_csv(os.path.join(path, filename))
 
-        # Δημιουργία των lags
-        df = create_lags(df, 50)
+        # Create the lags
+        df = create_lags(df, 10)
 
-        # Διαχωρισμός σε train και test sets
+        # Discretize the features
+        df = discretize_columns(df, bins=3)
+
+        # Split into train and test sets
         train_size = int(0.8 * len(df))
         train_df = df.iloc[:train_size]
         test_df = df.iloc[train_size:]
 
-        # Προετοιμασία των δεδομένων εκπαίδευσης
-        X_train = train_df.drop(['timestamp', 'label'], axis=1).values
-        y_train = train_df['label'].values
+        X_train = train_df.drop(['timestamp', 'label'], axis=1)
+        y_train = train_df['label']
+        X_test = test_df.drop(['timestamp', 'label'], axis=1)
+        y_test = test_df['label']
 
-        # Προετοιμασία των δεδομένων ελέγχου
-        X_test = test_df.drop(['timestamp', 'label'], axis=1).values
-        y_test = test_df['label'].values
+        # Combine X_train and y_train to create a DataFrame for training the Bayesian Network
+        train_df = pd.concat([X_train, y_train], axis=1)
 
-        # Ορισμός του μοντέλου Bayesian Neural Network
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(X_train.shape[1],)),
-            tf.keras.layers.Dense(64, activation='relu'),
-            tf.keras.layers.Dense(64, activation='relu'),
-            tf.keras.layers.Dense(141, activation='softmax')
-        ])
+        # Create Bayesian Network structure
+        hc = HillClimbSearch(train_df)
+        best_model = hc.estimate(scoring_method=BicScore(train_df))
 
-        # Σύνταξη του μοντέλου
-        model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        model = BayesianNetwork(best_model.edges())
+        model.fit(train_df, estimator=MaximumLikelihoodEstimator)
 
-        # Εκπαίδευση του μοντέλου
-        model.fit(X_train, y_train, epochs=10, batch_size=32, verbose=0)
+        # Inference
+        infer = VariableElimination(model)
+        y_pred = []
 
-        # Αξιολόγηση του μοντέλου
-        _, accuracy = model.evaluate(X_test, y_test, verbose=0)
+        for _, row in X_test.iterrows():
+            evidence = row.to_dict()
+            query_result = infer.map_query(variables=['label'], evidence=evidence)
+            y_pred.append(query_result['label'])
+
+        # Calculate accuracy
+        accuracy = accuracy_score(y_test, y_pred)
         accuracies.append(accuracy)
 
-        # Εκτύπωση της ακρίβειας για κάθε αρχείο
-        print(f"Ακρίβεια για το αρχείο {filename}: {accuracy}")
+        # Print the accuracy for each file
+        print(f"Accuracy for file {filename}: {accuracy}")
 
-# Υπολογισμός της μέσης ακρίβειας
-mean_accuracy = np.mean(accuracies)
-print(f"Μέση ακρίβεια για όλα τα αρχεία: {mean_accuracy}")
+# Calculate and print the mean accuracy
+mean_accuracy = sum(accuracies) / len(accuracies)
+print(f"Mean accuracy: {mean_accuracy}")
