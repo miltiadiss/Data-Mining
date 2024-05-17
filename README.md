@@ -25,5 +25,6 @@ This project is part of **Data Mining & Learning Algorithms** course in Computer
     130: **cycling (sit, inactive)**
     140: **cycling (stand, inactive)**
 
-* 
+* **Goals**: 1. Statistic study of the features of the dataset
+*            2. Implementation of 
 
