@@ -1,3 +1,4 @@
+#Overview  
 This project is part of **Data Mining & Learning Algorithms** elective course in Computer Engineering & Informatics Department of University of Patras for Spring Semester 2024. 
 * **Dataset**: [https://archive.ics.uci.edu/dataset/779/harth](URL) : The Human Activity Recognition Trondheim (HARTH) dataset contains recordings of 22 participants wearing two 3-axial Axivity AX3 accelerometers for around 2 hours in a free-living setting. One sensor was attached to the right front thigh and the other to the lower back. The provided sampling rate is 50Hz. 
 
