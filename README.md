@@ -11,3 +11,19 @@ This project is part of **Data Mining & Learning Algorithms** course in Computer
     7. thigh_z: acceleration of thigh sensor in z-direction (backward) in the unit g
     8. label: annotated activity code
 
+    The dataset contains the following annotated activities with the corresponding coding:
+    1: walking	
+    2: running	
+    3: shuffling
+    4: stairs (ascending)	
+    5: stairs (descending)	
+    6: standing	
+    7: sitting	
+    8: lying	
+    13: cycling (sit)	
+    14: cycling (stand)	
+    130: cycling (sit, inactive)
+    140: cycling (stand, inactive)
+
+* 
+
