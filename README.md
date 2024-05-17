@@ -28,7 +28,7 @@ This project is part of **Data Mining & Learning Algorithms** course in Computer
 * **Goals**:
 1. Statistic study of the features of the dataset.
 2. Training of 3 types of classifiers that predict the activity of every participant for every timestamp based on the previous values of the accelometers.
-    1. **Neural Networks**:
+    1. **Neural Networks**: We chose to work with Artificial Neural Networks using the **tensorflow* library from Python.
     2. **Bayesian Networks**:
     3. **Random Forests**:
 3. Splitting of the participants in clusters based on their activity history using the following two clustering algorithms:
