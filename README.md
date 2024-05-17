@@ -26,6 +26,8 @@ This project is part of **Data Mining & Learning Algorithms** course in Computer
     140: **cycling (stand, inactive)**
 
 * **Goals**: 1. Statistic study of the features of the dataset.
-  2. Training of 3 types of classifiers that predict the activity of every participant for every timestamp based on the previous values of the accelometers.
+2. Training of 3 types of classifiers that predict the activity of every participant for every timestamp based on the previous values of the accelometers.
     1. **Neural Networks**:
+    2. **Bayesian Networks**:
+    3. **Random Forests**:
 
