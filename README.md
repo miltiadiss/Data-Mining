@@ -31,4 +31,7 @@ This project is part of **Data Mining & Learning Algorithms** course in Computer
     1. **Neural Networks**:
     2. **Bayesian Networks**:
     3. **Random Forests**:
+3. Splitting of the participants in clusters based on their activity history using the following two clustering algorithms:
+    1. **k - means**:
+    2. **DBSCAN**: 
 
