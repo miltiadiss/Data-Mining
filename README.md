@@ -34,6 +34,7 @@ This project is part of **Data Mining & Learning Algorithms** course in Computer
 3. Splitting of the 22 participants in clusters based on their activity history using the following two clustering algorithms:
     1. **k - means**:
     2. **DBSCAN**: 
+4. We also used some performance metrics to evaluate the efficiency of the training of the models, such as: **F1 - score**, **Precision**, **Recall** e.t.c.
 
 * **Programming Language and Environment**: Python, Jupyter Notebook.
   
