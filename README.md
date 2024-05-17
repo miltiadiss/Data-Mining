@@ -35,3 +35,5 @@ This project is part of **Data Mining & Learning Algorithms** course in Computer
     1. **k - means**:
     2. **DBSCAN**: 
 
+* **Programming Language and Environment**: Python, Jupyter Notebook
+Further details of our implementations can be found in the technical report in the **Documentation** folder. 
