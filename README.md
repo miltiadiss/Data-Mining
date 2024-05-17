@@ -30,7 +30,7 @@ This project is part of **Data Mining & Learning Algorithms** course in Computer
 2. Training of 3 types of classifiers that predict the activity of every participant for every timestamp based on the previous values of the accelometers.
     1. **Neural Networks**: We chose to work with an **Artificial Neural Network** that is trained for 10 epochs, using the *tensorflow* library.
     2. **Bayesian Networks**:
-    3. **Random Forests**: We chose to work 30 decision trees (estimators) to create the Random Forest, using the sklearn.ensemble module.
+    3. **Random Forests**: We chose to work with 30 decision trees (estimators) to create the Random Forest, using the sklearn.ensemble module.
 3. Splitting of the participants in clusters based on their activity history using the following two clustering algorithms:
     1. **k - means**:
     2. **DBSCAN**: 
