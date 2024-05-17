@@ -37,6 +37,6 @@ This project is part of **Data Mining & Learning Algorithms** elective course in
     2. **DBSCAN**: 
 4. We also used some performance metrics to evaluate the efficiency of the training of the models, such as: **F1 - score**, **Precision**, **Recall** e.t.c.
 
-* **Programming Language and Environment**: Python, Jupyter Notebook.
+* **Programming Language and Environment**: Python, Jupyter Notebook, PyCharm.
   
 Further details of our implementations can be found in the technical report in the **Documentation** folder. 
