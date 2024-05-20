@@ -4,16 +4,19 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-from collections import Counter
+from scipy.spatial.distance import cdist
 
 # Ορισμός του φακέλου που περιέχει τα αρχεία CSV
 path = r"C:\Users\chryssa_pat\PycharmProjects\data_mining\harth"
 
 # Λίστες για την αποθήκευση των δεδομένων από όλα τα αρχεία
 all_data = []
+# Λίστα για τα ονόματα των αρχείων
+file_names = []
+# Λίστες για τις μέσες τιμές από κάθε αρχείο
+mean_values_list = []
 
 # Διάβασμα των αρχείων στο φάκελο
-file_names = []  # Λίστα με τα ονόματα των αρχείων
 for filename in os.listdir(path):
     if filename.endswith(".csv"):
         # Διάβασμα του CSV αρχείου
@@ -21,96 +24,42 @@ for filename in os.listdir(path):
         file_names.append(filename)  # Κρατάμε το όνομα του αρχείου για κάθε δείγμα
 
         # Επιλογή των συγκεκριμένων χαρακτηριστικών
-        X = df[['back_x', 'back_y', 'back_z', 'thigh_x', 'thigh_y', 'thigh_z']].values
+        columns = ['back_x', 'back_y', 'back_z', 'thigh_x', 'thigh_y', 'thigh_z']
+        X = df[columns]
 
         # Αποθήκευση των δεδομένων στη λίστα
         all_data.append(X)
 
-# Συνδυασμός όλων των δεδομένων σε ένα συνολικό πίνακα
-all_data_combined = np.concatenate(all_data, axis=0)
+        # Υπολογισμός μέσης τιμής κάθε στήλης
+        mean_values = X.mean().values
 
-# Κανονικοποίηση των δεδομένων
+        # Προσθήκη των μέσων τιμών στη λίστα
+        mean_values_list.append(mean_values)
+
+# Δημιουργία DataFrame με τα ονόματα των αρχείων ως δείκτες και τις μέσες τιμές ως δεδομένα
+mean_values_df = pd.DataFrame(mean_values_list, columns=columns, index=file_names)
+
+# Εμφάνιση του DataFrame
+print(mean_values_df)
+
+# Κανονικοποίηση των μέσων τιμών
 scaler = StandardScaler()
-all_data_scaled = scaler.fit_transform(all_data_combined)
+mean_values_scaled = scaler.fit_transform(mean_values_df)
 
-# Εφαρμογή του αλγορίθμου k-means
-kmeans = KMeans(n_clusters=8, random_state=42)  # Ορισμός αριθμού συστάδων και τυχαίας κατάστασης για επαναληψιμότητα
-kmeans.fit(all_data_scaled)
+# Εφαρμογή του αλγορίθμου k-means στα κανονικοποιημένα δεδομένα
+kmeans = KMeans(n_clusters=4, random_state=42)  # Ορισμός αριθμού συστάδων και τυχαίας κατάστασης για επαναληψιμότητα
+kmeans.fit(mean_values_scaled)
 
-# Λίστα για την αποθήκευση των αποτελεσμάτων ανά συμμετέχοντα
-cluster_assignments = []
-print("Cluster Centers:")
-for center in kmeans.cluster_centers_:
-    print(center)
+# Προβλέψεις για τις συστάδες των μέσων τιμών
+cluster_assignments = kmeans.predict(mean_values_scaled)
 
-# Πίνακας για αποθήκευση του WCSS για κάθε τιμή του k
-wcss_values = []
+# Δημιουργία DataFrame με τα αρχεία και τις αντίστοιχες συστάδες
+clusters_df = pd.DataFrame({'filename': file_names, 'cluster': cluster_assignments})
 
-# Δοκιμάζουμε διαφορετικές τιμές για το k
-for k in range(1, 11):
-    kmeans = KMeans(n_clusters=k, random_state=42)
-    kmeans.fit(all_data_scaled)
-    wcss_values.append(kmeans.inertia_)
+# Ομαδοποίηση και εκτύπωση των αρχείων ανά συστάδα
+grouped = clusters_df.groupby('cluster')['filename'].apply(list)
 
-# Οπτικοποίηση του Elbow Method με χρήση του WCSS
-plt.plot(range(1, 11), wcss_values, marker='o')
-plt.xlabel('Number of Clusters (k)')
-plt.ylabel('WCSS')
-plt.title('Elbow Method using WCSS')
-plt.xticks(range(1, 11))
-plt.grid(True)
-plt.show()
-
-# Προβλέψεις για κάθε συμμετέχοντα
-for i, X in enumerate(all_data):
-    # Κανονικοποίηση των δεδομένων του συμμετέχοντα
-    X_scaled = scaler.transform(X)
-
-    # Προβλέψεις των συστάδων
-    labels = kmeans.predict(X_scaled)
-
-    # Βρίσκουμε την επικρατέστερη συστάδα για τον συμμετέχοντα
-    most_common_cluster = Counter(labels).most_common(1)[0][0]
-
-    # Αποθήκευση των αποτελεσμάτων
-    cluster_assignments.append({
-        'filename': file_names[i],
-        'most_common_cluster': most_common_cluster
-    })
-
-
-# Οπτικοποίηση των συστάδων και των σημείων των συμμετεχόντων
-plt.figure(figsize=(12, 8))
-
-# Δημιουργία χρωματικής παλέτας για τις συστάδες
-colors = ['red', 'blue', 'green', 'orange', 'purple', 'black', 'pink', 'grey']
-
-# Δημιουργία κενών λιστών για τις συντεταγμένες x και y
-x_coords = []
-y_coords = []
-
-# Προσθήκη των σημείων στις συντεταγμένες ανά συστάδα
-for i, assignment in enumerate(cluster_assignments):
-    cluster = assignment['most_common_cluster']
-    # Δημιουργία τυχαίων συντεταγμένων για κάθε συστάδα
-    x_coords.append(
-        cluster + np.random.rand() * 0.5 - 0.25)  # Προσθέτει μικρή τυχαία μετατόπιση για καλύτερη οπτικοποίηση
-    y_coords.append(np.random.rand() * 0.5 - 0.25)  # Προσθέτει μικρή τυχαία μετατόπιση για καλύτερη οπτικοποίηση
-    plt.scatter(x_coords[-1], y_coords[-1], s=100, color=colors[cluster])
-
-## Προσθήκη ετικετών στα σημεία για να δείχνουν το όνομα του αρχείου
-for i, assignment in enumerate(cluster_assignments):
-    plt.text(x_coords[i], y_coords[i], assignment['filename'], fontsize=9, ha='right')
-
-# Προσθήκη υπομνήματος
-for cluster, color in enumerate(colors):
-    plt.scatter([], [], color=color, label=f'Cluster {cluster + 1}')
-
-# Προσθήκη διακεκομμένων γραμμών για τον διαχωρισμό των συστάδων
-for i in range(1, len(colors)):
-    plt.axvline(x=i - 0.5, color='black', linestyle='--')
-
-plt.title('Clustering of Participants Based on Activities')
-plt.axis('off')  # Απενεργοποίηση των αξόνων
-plt.legend()
-plt.show()
+for cluster, files in grouped.items():
+    print(f"Cluster {cluster}:")
+    for file in files:
+        print(f"  {file}")
