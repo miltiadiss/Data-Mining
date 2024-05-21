@@ -1,77 +1,71 @@
 import os
 import pandas as pd
-from pgmpy.models import BayesianNetwork
-from pgmpy.estimators import MaximumLikelihoodEstimator, HillClimbSearch, BicScore
-from pgmpy.inference import VariableElimination
-from sklearn.preprocessing import KBinsDiscretizer
-from sklearn.metrics import accuracy_score
+from pgmpy.models import BayesianModel
+from pgmpy.factors.discrete import TabularCPD
+import numpy as np
 
 def create_lags(df, lag):
-    cols_to_shift = [col for col in df.columns if col not in ['timestamp', 'label']]
+    cols_to_shift = [col for col in df.columns if (col != 'timestamp' and col != 'label')]
+    lagged_columns = {}
     for col in cols_to_shift:
-        for i in range(1, lag + 1):
-            df[f'{col}_lag_{i}'] = df[col].shift(i)
+        lagged_columns[col] = [df[col].shift(i) for i in range(1, lag + 1)]
+    lagged_df = pd.DataFrame(lagged_columns)
+    df = pd.concat([df, lagged_df], axis=1)
     df.fillna(0, inplace=True)  # Replace NaN values with 0
     return df
 
-def discretize_columns(df, bins):
-    cols_to_discretize = [col for col in df.columns if col not in ['timestamp', 'label']]
-    discretizer = KBinsDiscretizer(n_bins=bins, encode='ordinal', strategy='uniform')
-    df[cols_to_discretize] = discretizer.fit_transform(df[cols_to_discretize])
-    return df
+def compute_cpt_values(variable, parents, dataframes):
+    num_states = len(dataframes[0][variable].unique())
+    num_parent_states = [len(dataframes[0][parent].unique()) for parent in parents]
+    cpt_values = {}
 
-# Set the folder containing the CSV files
-path = '/content/harth'
-accuracies = []
+    for df in dataframes:
+        for i, row in df.iterrows():
+            current_value = row[variable]
+            parent_values = [row[parent] for parent in parents]
+            parent_index = tuple([int(val) for val in parent_values])  # Convert to integers
 
-# Loop through the files in the folder
+            if current_value not in cpt_values:
+                cpt_values[current_value] = {}
+            parent_key = tuple(parent_index)
+            if parent_key not in cpt_values[current_value]:
+                cpt_values[current_value][parent_key] = 0
+            cpt_values[current_value][parent_key] += 1
+
+    return cpt_values
+
+# Define the folder containing the CSV files
+path = r"C:\Users\chryssa_pat\PycharmProjects\data_mining\harth"
+
+# Load all CSV files into a list of dataframes
+dataframes = []
 for filename in os.listdir(path):
     if filename.endswith(".csv"):
-        # Load the CSV file
         df = pd.read_csv(os.path.join(path, filename))
+        dataframes.append(df)
 
-        # Create the lags
-        df = create_lags(df, 10)
+# Define lag
+lag = 50
 
-        # Discretize the features
-        df = discretize_columns(df, bins=3)
+# Define variables and create the Bayesian Network
+variables = ["back_x", "back_y", "back_z", "thigh_x", "thigh_y", "thigh_z"]
+model = BayesianModel()
+model.add_nodes_from(variables)
+for i in range(len(variables) - 1):
+    model.add_edge(variables[i], variables[i+1])
 
-        # Split into train and test sets
-        train_size = int(0.8 * len(df))
-        train_df = df.iloc[:train_size]
-        test_df = df.iloc[train_size:]
+# Create lag features and compute conditional probability tables
+for variable in variables:
+    parents = model.get_parents(variable)
+    if not parents:
+        cpd = TabularCPD(variable=variable, variable_card=2, values=[[0.5], [0.5]])
+    else:
+        cpd_values = compute_cpt_values(variable, parents, dataframes)
+        cpd = TabularCPD(variable=variable, variable_card=2,
+                         values=cpd_values, evidence=parents, evidence_card=[2]*len(parents))
+    model.add_cpds(cpd)
 
-        X_train = train_df.drop(['timestamp', 'label'], axis=1)
-        y_train = train_df['label']
-        X_test = test_df.drop(['timestamp', 'label'], axis=1)
-        y_test = test_df['label']
+# Inference can be performed here if needed
 
-        # Combine X_train and y_train to create a DataFrame for training the Bayesian Network
-        train_df = pd.concat([X_train, y_train], axis=1)
-
-        # Create Bayesian Network structure
-        hc = HillClimbSearch(train_df)
-        best_model = hc.estimate(scoring_method=BicScore(train_df))
-
-        model = BayesianNetwork(best_model.edges())
-        model.fit(train_df, estimator=MaximumLikelihoodEstimator)
-
-        # Inference
-        infer = VariableElimination(model)
-        y_pred = []
-
-        for _, row in X_test.iterrows():
-            evidence = row.to_dict()
-            query_result = infer.map_query(variables=['label'], evidence=evidence)
-            y_pred.append(query_result['label'])
-
-        # Calculate accuracy
-        accuracy = accuracy_score(y_test, y_pred)
-        accuracies.append(accuracy)
-
-        # Print the accuracy for each file
-        print(f"Accuracy for file {filename}: {accuracy}")
-
-# Calculate and print the mean accuracy
-mean_accuracy = sum(accuracies) / len(accuracies)
-print(f"Mean accuracy: {mean_accuracy}")
+# Check the model for consistency
+assert model.check_model()
