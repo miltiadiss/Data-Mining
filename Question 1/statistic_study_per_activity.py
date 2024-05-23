@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 # Ορίστε τον φάκελο που περιέχει τα αρχεία CSV
-path = r"C:\Users\me\PycharmProjects\pythonProject2\harth"
+path = r"/harth"
 output_folder = r"C:\Users\me\PycharmProjects\pythonProject2\activity_statistics"
 os.chdir(path)
 
