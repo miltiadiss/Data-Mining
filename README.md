@@ -28,6 +28,7 @@ This project is part of **Data Mining & Machine Learning** elective course in Co
 
 * **Goals**:
 1. Statistic study of the features of the dataset. Our main goal is to reveal probable "hidden" dependancies between the data.
+![Στιγμιότυπο οθόνης 2024-05-23 180454](https://github.com/miltiadiss/Data-Mining/assets/45690339/4ee72766-c13a-4788-88ad-333bbdfceba7)
 2. Training of 3 types of classifiers that predict the activity of every participant for every timestamp based on the N previous values (lags) of the accelometers.
     1. **Neural Networks**: We chose to work with an **Artificial Neural Network** that is trained for 10 epochs, using the *tensorflow* library and *keras*.
     2. **Bayesian Networks**:
