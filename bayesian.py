@@ -4,6 +4,10 @@ import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+from pgmpy.models import BayesianNetwork
+from pgmpy.estimators import MaximumLikelihoodEstimator, HillClimbSearch, BicScore
+from pgmpy.inference import VariableElimination
+from sklearn.preprocessing import KBinsDiscretizer
 
 def create_lags(df, lag):
     # Επιλογή των στηλών που θα καθυστερήσουν (αφαιρούμε τις άχρηστες στήλες 'timestamp' και 'label')
@@ -20,11 +24,9 @@ def create_lags(df, lag):
 
 # Μονοπάτι για τον φάκελο που περιέχει τα αρχεία CSV
 path = '/content/drive/MyDrive/harth'
-
-from pgmpy.models import BayesianNetwork
-from pgmpy.estimators import MaximumLikelihoodEstimator, HillClimbSearch, BicScore
-from pgmpy.inference import VariableElimination
-from sklearn.preprocessing import KBinsDiscretizer
+# Δημιουργία νέου φακέλου για τις εικόνες των confusion matrices
+output_folder = '/content/drive/MyDrive/harth_confusion_matrices'
+os.makedirs(output_folder, exist_ok=True)
 
 def discretize_columns(df, bins):
     cols_to_discretize = [col for col in df.columns if col not in ['timestamp', 'label']]
@@ -85,7 +87,6 @@ for filename in os.listdir(path):
 
         # Υπολογισμός και αποθήκευση του confusion matrix
         unique_labels = sorted(df['label'].unique())
-        cm = confusion_matrix(y_test, y_pred, labels=unique_labels)
 
         # Προσθήκη των μετρικών και του confusion matrix στη λίστα
         base_name = os.path.splitext(filename)[0]  # Χωρίς κατάληξη
@@ -95,9 +96,21 @@ for filename in os.listdir(path):
             'Precision': precision,
             'Recall': recall,
             'F1-Score': f1,
-            'Confusion Matrix': cm
         }
         metrics_data.append(participant_metrics)
+
+        # Αποθήκευση του confusion matrix ως εικόνα στο νέο φάκελο
+        cm = confusion_matrix(y_test, y_pred, labels=unique_labels)
+        cm_filename = os.path.splitext(filename)[0] + '_confusion_matrix.png'
+        cm_filepath = os.path.join(output_folder, cm_filename)
+
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(cm, annot=True, cmap='Blues', fmt='g')
+        plt.title('Confusion Matrix')
+        plt.xlabel('Predicted Label')
+        plt.ylabel('True Label')
+        plt.savefig(cm_filepath)
+        plt.close()
 
 # Δημιουργία DataFrame από τη λίστα με τα δεδομένα μετρικών
 metrics_df = pd.DataFrame(metrics_data)
