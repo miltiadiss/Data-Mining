@@ -38,6 +38,7 @@ This project is part of **Data Mining & Machine Learning** elective course in Co
     1. **k - means Algorithm (Partitioning Clustering)**: For the execution of this algorithm we used the *sklearn.preprocessing* and *sklearn.cluster* modules.
     2. **Kohonen Network (Net Clustering)**: For the execution of this algorithm we used the *minisom* module. The training of the Self Organizing Map (SOM) is random with a neighbor function of variance equal to 0.5. Also the grid of the network is a 10x10 frame.
     3. **Gaussian Mixture (Non-Hierarchical Clustering)**:
+   Finally, for the evaluation of the efficiency of clustering we used **Silhouette Score** metric.
 
 * **Programming Language and Environment**: Python, Jupyter Notebook.
   
